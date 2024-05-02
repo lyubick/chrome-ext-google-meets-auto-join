@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Auto-join Google Meets",
+  "description": "Extension to auto-join Google meetings from your calendar",
+  "version": "1.0",
+
+  "permissions": ["identity", "tabs", "storage"],
+  "oauth2": {
+    "client_id": "CLIENT_ID_HERE",
+    "scopes": [
+      "https://www.googleapis.com/auth/calendar"
+    ]
+  },
+
+  "background": {
+    "service_worker": "js/backend.js"
+  },
+
+  "action": {
+    "default_popup": "main.html",
+    "default_icon": "icon.png"
+  },
+
+   "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
