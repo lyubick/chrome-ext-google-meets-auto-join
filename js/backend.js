@@ -1,28 +1,47 @@
 let lastCheckAt = new Date();
-let checkIntervalMillis = 2 * 60 * 1000;
+const checkIntervalMillis = 2 * 60 * 1000;
+
+const googleAPICalendarURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+
+const getAuthToken = () => {
+    console.log("Authenticating...")
+
+    return chrome.identity.getAuthToken({'interactive': false})
+        .then((tokenObject) => tokenObject.token)
+}
 
 const getGoogleMeetings = (token) => {
+    console.log("Executing...")
+
     function openURL(url) {
         return chrome.tabs.query({}, function(tabs) {
-            for (let i = 0; i < tabs.length; ++i) {
-                if (tabs[i].url.toString().includes(url)) {
-                    return;
-                }
-            }
-            chrome.tabs.create({url: url}, function (tab) {
-                chrome.windows.update(tab.windowId, { focused: true });
-            });
+            // Check if meeting is not already opened. Skip if it is.
+             if (tabs.some((tab) => tab.url.includes(url))) {
+                 console.log("Tab is already opened with url!")
+             } else {
+                 // TODO: Define appropriate time frame to search, should be dependant on a meeting time ideally
+                 let oneHourAgo = (new Date()).getTime() - 1000 * 60 * 60;
+                 // Check if meeting was not already attended - check if url exists in history. Skip if it is.
+                 chrome.history.search({text: url, startTime: oneHourAgo}, function(data) {
+                    if (data.length > 0) {
+                        console.log("Meeting exists in history")
+                    } else {
+                        // Open a meeting!
+                        chrome.tabs.create({url: url}, function (tab) {
+                            chrome.windows.update(tab.windowId, {focused: true}).then(() => {})
+                        })
+                    }
+                 });
+             }
         })
     }
-
-    console.log("Executing...")
 
     const headers = new Headers({
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json'
     })
 
-    let dateNow = new Date();
+    const dateNow = new Date();
 
     const queryAdditionalParams = new URLSearchParams({
         timeMin: dateNow.toISOString(),
@@ -35,38 +54,38 @@ const getGoogleMeetings = (token) => {
         headers
     };
 
-    fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${queryAdditionalParams}`, queryParams)
+    fetch(`${googleAPICalendarURL}?${queryAdditionalParams}`, queryParams)
         .then((response) => response.json())
         .then(function (data) {
-            for (let item of data.items) {
-                // TODO: Concurrent meeting alert
-                if (item.hangoutLink) {
-                    openURL(item.hangoutLink)
-                }
+            const invites = data.items.filter((invite) => 'hangoutLink' in invite)
+
+            if (invites.length > 1) {
+                const overlappingMeets = invites.map((invite) => {
+                        return {
+                            title: invite.summary ? invite.summary : '(No title)',
+                            message: invite.organizer.email
+                        }
+                    })
+
+                chrome.notifications.create("overlappingMeetingsNotification", {
+                    type: "list",
+                    iconUrl: "../icon.png",
+                    title: `${overlappingMeets.length} Overlapping Meetings!`,
+                    message: '',
+                    // TODO: macOS will show only first row, unfortunately, think how we can prioritise smart. Created at?
+                    items: overlappingMeets,
+                    requireInteraction: true
+                });
+            }
+
+            for (let item of invites) {
+                openURL(item.hangoutLink)
             }
         })
 }
 
-const requestAuthToken = () => {
-    return chrome.identity.getAuthToken({'interactive': false}).then((tokenObject) => {
-        chrome.storage.local.set({ extensionSettings: {"authToken": tokenObject.token} }).then(() => {
-            console.log('Successfully saved the token: ' + tokenObject.token);
-        });
-        return tokenObject.token;
-    })
-}
-
 const authAndExecute = () => {
-    console.log("Authenticating...")
-    chrome.storage.local.get(["extensionSettings"]).then((result) => {
-        if (result.extensionSettings === undefined || result.extensionSettings.authToken === undefined) {
-            console.log("No extension settings found, or token not found. Requesting...")
-            requestAuthToken().then((token => getGoogleMeetings(token)))
-        } else {
-            console.log("Token found in local storage.")
-            getGoogleMeetings(result.extensionSettings.authToken)
-        }
-    });
+    getAuthToken().then((token => getGoogleMeetings(token)))
 }
 
 const runIfExtensionEnabled = () => {
@@ -80,8 +99,6 @@ const runIfExtensionEnabled = () => {
             } else {
                 console.log("Skipping, because check already was done in " + checkIntervalMillis + "ms")
             }
-
-
         } else {
             console.log("Extension is set to 'off'");
         }

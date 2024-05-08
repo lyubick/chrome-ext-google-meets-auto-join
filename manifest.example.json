@@ -4,9 +4,9 @@
   "description": "Extension to auto-join Google meetings from your calendar",
   "version": "1.0",
 
-  "permissions": ["identity", "tabs", "storage"],
+  "permissions": ["identity", "history", "notifications", "storage", "tabs"],
   "oauth2": {
-    "client_id": "CLIENT_ID_HERE",
+    "client_id": "",
     "scopes": [
       "https://www.googleapis.com/auth/calendar"
     ]
