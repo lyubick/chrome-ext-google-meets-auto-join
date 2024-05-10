@@ -57,7 +57,13 @@ const getGoogleMeetings = (token) => {
     fetch(`${googleAPICalendarURL}?${queryAdditionalParams}`, queryParams)
         .then((response) => response.json())
         .then(function (data) {
-            const invites = data.items.filter((invite) => 'hangoutLink' in invite)
+            let invites = data.items.filter((invite) => 'hangoutLink' in invite)
+
+            // Filter meetings that were declined
+            // TODO: Make a settings which meeting join or not to join, some list: declined, tentative etc.
+            invites = invites.filter((invite) =>
+                invite.attendees.some((attendee) => 'self' in attendee && attendee.responseStatus !== 'declined')
+            )
 
             if (invites.length > 1) {
                 const overlappingMeets = invites.map((invite) => {
