@@ -1,0 +1,43 @@
+body {
+    /* Set the whole body to use the Roboto font */
+    font-family: fantasy;
+    /* Add some margin and padding overall */
+    margin: 10px;
+    padding: 10px;
+    /* Change background color to a light pink */
+    background-color: #ffd1dc;
+}
+h1, label {
+    /* Change heading color to a vibrant pink */
+    color: #fd4292;
+}
+p {
+    /* Dark pink text color for paragraph */
+    color: #c71585;
+    /* Add text-align property for justifying the text */
+    text-align: center;
+}
+button {
+    /* Style the button with pink attributes */
+    background-color: #fd4292;
+    color: white;
+    padding: 14px 20px;
+    margin: 15px 0;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    opacity: 0.9;
+    /* Add a border-radius to make button corners more rounded */
+    border-radius: 25px;
+}
+button:hover {
+    opacity: 0.5;
+}
+/* Add some style for the image */
+img {
+    width: 50px;
+    height: 50px;
+    /* Align to the center */
+    display: block;
+    margin: 10px auto;
+}

@@ -111,4 +111,7 @@ const runIfExtensionEnabled = () => {
     });
 }
 
-setInterval(runIfExtensionEnabled, 10 * 1000)
+// For development purposes
+// chrome.storage.local.clear();
+
+setInterval(runIfExtensionEnabled, 10 * 1000);

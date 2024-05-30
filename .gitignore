@@ -1,2 +1,6 @@
 /**/.idea
-manifest.json
+# Do not include manifest, since it contains credentials
+/**/*manifest*
+/**/deployment.zip
+# By default, do not include images
+/**/*.png

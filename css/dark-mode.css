@@ -1,0 +1,37 @@
+body {
+    font-family: fantasy;
+    margin: 10px;
+    padding: 10px;
+    /* Changed here to dark */
+    background-color: #212121;
+}
+h1, label {
+    /* Changed here to white */
+    color: #FFFFFF;
+}
+p {
+    /* Changed here to light grey */
+    color: #B0BEC5;
+    text-align: center;
+}
+button {
+    /* Changed here to dark blue */
+    background-color: #303F9F;
+    color: white;
+    padding: 14px 20px;
+    margin: 15px 0;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    opacity: 0.9;
+    border-radius: 25px;
+}
+button:hover {
+    opacity: 0.5;
+}
+img {
+    width: 50px;
+    height: 50px;
+    display: block;
+    margin: 10px auto;
+}

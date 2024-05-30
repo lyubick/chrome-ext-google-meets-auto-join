@@ -1,4 +1,7 @@
 const button = document.getElementById('powerButton');
+const checkBox = document.getElementById('mode-switch');
+const checkBoxAuto = document.getElementById('mode-switch-auto');
+const style = document.getElementById('theme-style');
 
 const syncButtonText = () => {
     chrome.storage.local.get(["extensionSettings"]).then(
@@ -27,3 +30,74 @@ const initState = () => {
 }
 
 initState()
+
+// Checkbox and page style controllers
+
+const syncThemes = () => {
+    chrome.storage.local.get(["extensionThemeSettings"]).then(
+        (result) => {
+            checkBoxAuto.checked = result.extensionThemeSettings.mode === 'auto'
+
+            checkBox.disabled = result.extensionThemeSettings.mode === 'auto'
+            checkBox.checked = result.extensionThemeSettings.theme === 'dark'
+
+            style.href = (result.extensionThemeSettings.theme === 'dark') ? 'css/dark-mode.css' : 'css/pink-mode.css'
+        }
+    )
+}
+
+const setThemeMode = (theme, mode) => {
+    chrome.storage.local.get(["extensionThemeSettings"]).then(
+        (result) => {
+            if (result.extensionThemeSettings !== undefined) {
+                let new_settings = {
+                    theme: (theme !== undefined) ? theme : (result.extensionThemeSettings.theme !== undefined) ? result.extensionThemeSettings.theme : 'pink',
+                    mode: (mode !== undefined) ? mode : (result.extensionThemeSettings.mode !== undefined) ? result.extensionThemeSettings.mode : 'manual'
+                }
+                chrome.storage.local.set({ extensionThemeSettings: new_settings }).then(() => syncThemes())
+            } else {
+                let default_settings = {theme: theme ? theme : 'pink', mode: mode ? mode: 'manual'}
+                chrome.storage.local.set({ extensionThemeSettings: default_settings }).then(() => syncThemes())
+            }
+        }
+    )
+}
+
+checkBox.addEventListener('change', function() {
+    setThemeMode(this.checked ? 'dark' : 'pink', undefined)
+});
+
+checkBoxAuto.addEventListener('change', function() {
+    if (this.checked) {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setThemeMode('dark', 'auto')
+        } else {
+            setThemeMode('pink', 'auto')
+        }
+    } else {
+        setThemeMode(undefined, 'manual')
+    }
+});
+
+const initTheme = () => {
+    chrome.storage.local.get(["extensionThemeSettings"]).then((result) => {
+        if (result.extensionThemeSettings === undefined) {
+            // By default, use default settings
+            setThemeMode(undefined, undefined)
+        } else {
+            if (result.extensionThemeSettings.mode !== undefined) {
+                // Sync theme if Chrome auto mode is set
+                syncThemes()
+            } else {
+                if (result.extensionThemeSettings.theme !== undefined) {
+                    // Sync theme if theme is set
+                    syncThemes()
+                } else {
+                    setThemeMode(undefined, undefined)
+                }
+            }
+        }
+    })
+}
+
+initTheme()
