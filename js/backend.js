@@ -75,7 +75,7 @@ const getGoogleMeetings = (token) => {
 
                 chrome.notifications.create("overlappingMeetingsNotification", {
                     type: "list",
-                    iconUrl: "../icon.png",
+                    iconUrl: "../images/icon.png",
                     title: `${overlappingMeets.length} Overlapping Meetings!`,
                     message: '',
                     // TODO: macOS will show only first row, unfortunately, think how we can prioritise smart. Created at?
