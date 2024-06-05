@@ -3,36 +3,38 @@ const checkIntervalMillis = 2 * 60 * 1000;
 
 const googleAPICalendarURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 
-const getAuthToken = () => {
+const getAuthToken = (interactive) => {
     console.log("Authenticating...")
 
-    return chrome.identity.getAuthToken({'interactive': false})
+    return chrome.identity.getAuthToken({'interactive': interactive})
         .then((tokenObject) => tokenObject.token)
+}
+
+const notifyOverlappingMeets = (invites) => {
+    const overlappingMeets = invites.map((invite) => {
+        return {
+            title: invite.summary ? invite.summary : '(No title)',
+            message: invite.organizer.email
+        }
+    })
+
+    chrome.notifications.create("overlappingMeetingsNotification", {
+        type: "list",
+        iconUrl: "../images/icon.png",
+        title: `${overlappingMeets.length} Overlapping Meetings!`,
+        message: '',
+        // TODO: macOS will show only first row, unfortunately, think how we can prioritise smart. Created at?
+        items: overlappingMeets,
+        requireInteraction: true
+    });
 }
 
 const getGoogleMeetings = (token) => {
     console.log("Executing...")
 
     function openURL(url) {
-        return chrome.tabs.query({}, function(tabs) {
-            // Check if meeting is not already opened. Skip if it is.
-             if (tabs.some((tab) => tab.url.includes(url))) {
-                 console.log("Tab is already opened with url!")
-             } else {
-                 // TODO: Define appropriate time frame to search, should be dependant on a meeting time ideally
-                 let oneHourAgo = (new Date()).getTime() - 1000 * 60 * 60;
-                 // Check if meeting was not already attended - check if url exists in history. Skip if it is.
-                 chrome.history.search({text: url, startTime: oneHourAgo}, function(data) {
-                    if (data.length > 0) {
-                        console.log("Meeting exists in history")
-                    } else {
-                        // Open a meeting!
-                        chrome.tabs.create({url: url}, function (tab) {
-                            chrome.windows.update(tab.windowId, {focused: true}).then(() => {})
-                        })
-                    }
-                 });
-             }
+        chrome.tabs.create({url: url}, function (tab) {
+            chrome.windows.update(tab.windowId, {focused: true}).then(() => {})
         })
     }
 
@@ -62,36 +64,40 @@ const getGoogleMeetings = (token) => {
             // Filter meetings that were declined
             // TODO: Make a settings which meeting join or not to join, some list: declined, tentative etc.
             invites = invites.filter((invite) =>
-                invite.attendees.some((attendee) => 'self' in attendee && attendee.responseStatus !== 'declined')
+                (
+                    'attendees' in invite
+                    && invite.attendees.some((attendee) => 'self' in attendee && attendee.responseStatus !== 'declined')
+                )
+                || ('organizer' in invite && 'self' in invite.organizer)
             )
 
-            if (invites.length > 1) {
-                const overlappingMeets = invites.map((invite) => {
-                        return {
-                            title: invite.summary ? invite.summary : '(No title)',
-                            message: invite.organizer.email
-                        }
-                    })
+            chrome.tabs.query({}, function(tabs) {
+                // Filter already opened meetings
+                invites = invites.filter((invite) =>
+                    tabs.every((tab) => !tab.url.includes(invite.hangoutLink))
+                )
 
-                chrome.notifications.create("overlappingMeetingsNotification", {
-                    type: "list",
-                    iconUrl: "../images/icon.png",
-                    title: `${overlappingMeets.length} Overlapping Meetings!`,
-                    message: '',
-                    // TODO: macOS will show only first row, unfortunately, think how we can prioritise smart. Created at?
-                    items: overlappingMeets,
-                    requireInteraction: true
+                // TODO: Define appropriate time frame to search, should be dependant on a meeting time ideally
+                let oneHourAgo = (new Date()).getTime() - 1000 * 60 * 60 * 2;
+
+                chrome.history.search({text: '', startTime: oneHourAgo}, function(data) {
+                    // Filter already attended meetings
+                    invites = invites.filter(
+                        (invite) => data.every((history) => !history.url.includes(invite.hangoutLink))
+                    )
+
+                    // Notify user about overlapping meetings
+                    if (invites.length > 1) notifyOverlappingMeets(invites)
+
+                    // Open all meetings that survived till here
+                    invites.forEach(invite => openURL(invite.hangoutLink))
                 });
-            }
-
-            for (let item of invites) {
-                openURL(item.hangoutLink)
-            }
+            })
         })
 }
 
 const authAndExecute = () => {
-    getAuthToken().then((token => getGoogleMeetings(token)))
+    getAuthToken(false).then((token => getGoogleMeetings(token)))
 }
 
 const runIfExtensionEnabled = () => {
@@ -110,6 +116,14 @@ const runIfExtensionEnabled = () => {
         }
     });
 }
+
+// Upon installation or update initiate interactive authentication
+chrome.runtime.onInstalled.addListener(function(details){
+    console.log(details);
+    if (details.reason === "install" || details.reason === "update") {
+        getAuthToken(true)
+    }
+});
 
 // For development purposes
 // chrome.storage.local.clear();
