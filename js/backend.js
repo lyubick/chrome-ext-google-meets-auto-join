@@ -61,7 +61,6 @@ const getGoogleMeetings = (token) => {
         .then(function (data) {
             let invites = data.items.filter((invite) => 'hangoutLink' in invite)
 
-            console.log(invites)
             // Filter meetings that were declined
             // TODO: Make a settings which meeting join or not to join, some list: declined, tentative etc.
             invites = invites.filter((invite) => {
@@ -80,8 +79,6 @@ const getGoogleMeetings = (token) => {
                     return 'organizer' in invite && 'self' in invite.organizer
                 }
             });
-
-            console.log(invites)
 
             chrome.tabs.query({}, function(tabs) {
                 // Filter already opened meetings
