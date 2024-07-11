@@ -101,3 +101,25 @@ const initTheme = () => {
 }
 
 initTheme()
+
+const timeJoin = document.getElementById('time-join');
+const timeJoinValue = document.getElementById('time-join-value');
+
+timeJoin.addEventListener('input', function(){
+    chrome.storage.local.set({ extensionSettingsTime: { "interval": this.value } }).then(() => syncRangeText())
+});
+
+const syncRangeText = () => {
+    chrome.storage.local.get(["extensionSettingsTime"]).then(
+        (result) => {
+            if (result.extensionSettingsTime !== undefined)
+                timeJoin.value = result.extensionSettingsTime.interval
+            else
+                timeJoin.value = -2
+
+            timeJoinValue.innerText = timeJoin.value
+        }
+    )
+}
+
+syncRangeText()

@@ -1,3 +1,23 @@
+/** @typedef {Object} Attendee
+ *
+ * @property {string} responseStatus
+ */
+
+/**
+ * @typedef {Object} Organizer
+ *
+ * @property {string} email - The email of the person.
+ */
+
+/**
+ * @typedef {Object} Invite
+ *
+ * @property {Attendee[]} attendees - The list of attendees of the meeting.
+ * @property {string} hangoutLink - The URL to join the meeting.
+ * @property {Organizer} organizer - The organizer of the invite.
+ * @property {string} summary - The name of the invite.
+ */
+
 let lastCheckAt = new Date();
 const checkIntervalMillis = 2 * 60 * 1000;
 
@@ -10,6 +30,10 @@ const getAuthToken = (interactive) => {
         .then((tokenObject) => tokenObject.token)
 }
 
+/**
+ *
+ * @param {Invite[]} invites
+ */
 const notifyOverlappingMeets = (invites) => {
     const overlappingMeets = invites.map((invite) => {
         return {
@@ -29,13 +53,53 @@ const notifyOverlappingMeets = (invites) => {
     });
 }
 
-const getGoogleMeetings = (token) => {
+let alreadyNotified = []
+const notifyEverybodyDeclined = (invite) => {
+    console.log(alreadyNotified)
+
+    if (invite.hangoutLink in alreadyNotified) {
+        console.log("Notification sent already!")
+        return
+    }
+
+    chrome.notifications.create("everybodyDeclined", {
+        type: "basic",
+        iconUrl: "../images/icon.png",
+        title: `Everybody declined '${invite.summary ? invite.summary : '(No title)'}' @ ${invite.start.dateTime.toLocaleString()}`,
+        message: '',
+        requireInteraction: true
+    });
+
+    alreadyNotified.push(invite.hangoutLink)
+}
+
+const getGoogleMeetings = async (token) => {
     console.log("Executing...")
 
-    function openURL(url) {
-        chrome.tabs.create({url: url}, function (tab) {
+    function callbackOpenURL(URL) {
+        chrome.tabs.create({url: URL}, function (tab) {
             chrome.windows.update(tab.windowId, {focused: true}).then(() => {})
         })
+    }
+
+    function openURL(invite) {
+        chrome.storage.local.get(["extensionSettingsTime"]).then(
+            (result) => {
+                let timeDifference = (new Date()).getTime() - new Date(invite.start.dateTime).getTime()
+                let intervalMS = result.extensionSettingsTime.interval * 1000
+
+                if (timeDifference >= intervalMS) {
+                    callbackOpenURL(invite.hangoutLink)
+                } else {
+                    // interval -1 and difference -2
+                    setTimeout(
+                        callbackOpenURL,
+                        Math.abs(Math.abs(timeDifference) - Math.abs(intervalMS)),
+                        invite.hangoutLink
+                    )
+                }
+            }
+        )
     }
 
     const headers = new Headers({
@@ -48,7 +112,7 @@ const getGoogleMeetings = (token) => {
     const queryAdditionalParams = new URLSearchParams({
         timeMin: dateNow.toISOString(),
         timeMax: new Date(dateNow.getTime() + checkIntervalMillis).toISOString(),
-        singleEvents: true,
+        singleEvents: "true",
         orderBy: 'startTime'
     });
 
@@ -72,6 +136,7 @@ const getGoogleMeetings = (token) => {
                         let others_accepted = invite.attendees.some(
                             (attendee) => attendee.responseStatus !== 'declined' && !('self' in attendee)
                         )
+                        if ((!others_accepted) && user_accepted) notifyEverybodyDeclined(invite)
                         return others_accepted && user_accepted
                     }
                     return false
@@ -80,7 +145,7 @@ const getGoogleMeetings = (token) => {
                 }
             });
 
-            chrome.tabs.query({}, function(tabs) {
+            chrome.tabs.query({}, function (tabs) {
                 // Filter already opened meetings
                 invites = invites.filter((invite) =>
                     tabs.every((tab) => !tab.url.includes(invite.hangoutLink))
@@ -89,7 +154,7 @@ const getGoogleMeetings = (token) => {
                 // TODO: Define appropriate time frame to search, should be dependant on a meeting time ideally
                 let oneHourAgo = (new Date()).getTime() - 1000 * 60 * 60 * 2;
 
-                chrome.history.search({text: '', startTime: oneHourAgo}, function(data) {
+                chrome.history.search({text: '', startTime: oneHourAgo}, function (data) {
                     // Filter already attended meetings
                     invites = invites.filter(
                         (invite) => data.every((history) => !history.url.includes(invite.hangoutLink))
@@ -99,7 +164,7 @@ const getGoogleMeetings = (token) => {
                     if (invites.length > 1) notifyOverlappingMeets(invites)
 
                     // Open all meetings that survived till here
-                    invites.forEach(invite => openURL(invite.hangoutLink))
+                    invites.forEach(invite => openURL(invite))
                 });
             })
         })
@@ -128,13 +193,28 @@ const runIfExtensionEnabled = () => {
 
 // Upon installation or update initiate interactive authentication
 chrome.runtime.onInstalled.addListener(function(details){
-    console.log(details);
     if (details.reason === "install" || details.reason === "update") {
         getAuthToken(true)
     }
+
+    if (details.reason === "update") {
+        chrome.tabs.create({url: `html/update.html`})
+    }
+
+    // Initialise default settings
+    chrome.storage.local.get(["extensionSettingsTime"]).then((result) => {
+        if (result.extensionSettingsTime === undefined) {
+            chrome.storage.local.set({ extensionSettingsTime: {interval: -2}}).then(() => {})
+        }
+    })
 });
 
 // For development purposes
 // chrome.storage.local.clear();
 
-setInterval(runIfExtensionEnabled, 10 * 1000);
+// Alarms are suggested solution to avoid 'inactive' state of the service workers
+chrome.alarms.create("triggerCalendarCheck", { periodInMinutes: 10 / 60 }).then(() => {});
+
+chrome.alarms.onAlarm.addListener((alarmName) => {
+    if (alarmName.name === "triggerCalendarCheck") runIfExtensionEnabled()
+});

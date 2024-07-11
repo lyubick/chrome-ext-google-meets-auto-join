@@ -4,7 +4,6 @@
     <title>AutoGMeet+</title>
 
     <link id="theme-style" rel="stylesheet" href="css/pink-mode.css">
-<!--    <link rel="stylesheet" href="css/dark-mode.css">-->
 </head>
 <body>
     <img src="images/icon.png" alt="Logo">
@@ -16,6 +15,12 @@
     <p></p>
     <label for="mode-switch-auto">Inherit from Chrome:</label>
     <input type="checkbox" id="mode-switch-auto">
+
+    <p></p>
+    <label for="time-join">Join before: </label>
+    <span id="time-join-value"></span>
+    <label for="time-join">min.</label>
+    <input type="range" id="time-join" min="-2" max="1">
 
     <button id="powerButton">Stop</button>
     <script src="js/popup.js"></script>

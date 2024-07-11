@@ -7,9 +7,13 @@ body {
     /* Change background color to a light pink */
     background-color: #ffd1dc;
 }
-h1, label {
+h1, label, span {
     /* Change heading color to a vibrant pink */
     color: #fd4292;
+}
+span {
+    font-weight: bold;
+    font-size: large;
 }
 p {
     /* Dark pink text color for paragraph */
