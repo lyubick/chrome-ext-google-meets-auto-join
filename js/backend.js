@@ -73,6 +73,7 @@ const notifyEverybodyDeclined = (invite) => {
     alreadyNotified.push(invite.hangoutLink)
 }
 
+let alreadyScheduled = []
 const getGoogleMeetings = async (token) => {
     console.log("Executing...")
 
@@ -91,12 +92,19 @@ const getGoogleMeetings = async (token) => {
                 if (timeDifference >= intervalMS) {
                     callbackOpenURL(invite.hangoutLink)
                 } else {
-                    // interval -1 and difference -2
+                    // Return, if url opening already scheduled
+                    if (invite.hangoutLink in alreadyScheduled) {
+                        console.log("Meeting already scheduled for opening.")
+                        return
+                    }
+
                     setTimeout(
                         callbackOpenURL,
                         Math.abs(Math.abs(timeDifference) - Math.abs(intervalMS)),
                         invite.hangoutLink
                     )
+
+                    alreadyScheduled.push(invite.hangoutLink)
                 }
             }
         )
@@ -198,7 +206,7 @@ chrome.runtime.onInstalled.addListener(function(details){
     }
 
     if (details.reason === "update") {
-        chrome.tabs.create({url: `html/update.html`})
+        chrome.tabs.create({url: `html/update.html`}).then(() => {})
     }
 
     // Initialise default settings
