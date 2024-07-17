@@ -55,9 +55,7 @@ const notifyOverlappingMeets = (invites) => {
 
 let alreadyNotified = []
 const notifyEverybodyDeclined = (invite) => {
-    console.log(alreadyNotified)
-
-    if (invite.hangoutLink in alreadyNotified) {
+    if (alreadyNotified.includes(invite.hangoutLink)) {
         console.log("Notification sent already!")
         return
     }
@@ -87,13 +85,14 @@ const getGoogleMeetings = async (token) => {
         chrome.storage.local.get(["extensionSettingsTime"]).then(
             (result) => {
                 let timeDifference = (new Date()).getTime() - new Date(invite.start.dateTime).getTime()
-                let intervalMS = result.extensionSettingsTime.interval * 1000
+                // Interval is set in minutes in settings so it is required *60*1000 to convert to MS
+                let intervalMS = result.extensionSettingsTime.interval * 60 * 1000
 
                 if (timeDifference >= intervalMS) {
                     callbackOpenURL(invite.hangoutLink)
                 } else {
                     // Return, if url opening already scheduled
-                    if (invite.hangoutLink in alreadyScheduled) {
+                    if (alreadyScheduled.includes(invite.hangoutLink)) {
                         console.log("Meeting already scheduled for opening.")
                         return
                     }
@@ -160,9 +159,9 @@ const getGoogleMeetings = async (token) => {
                 )
 
                 // TODO: Define appropriate time frame to search, should be dependant on a meeting time ideally
-                let oneHourAgo = (new Date()).getTime() - 1000 * 60 * 60 * 2;
+                let twoHoursAgo = (new Date()).getTime() - 1000 * 60 * 60 * 2;
 
-                chrome.history.search({text: '', startTime: oneHourAgo}, function (data) {
+                chrome.history.search({text: '', startTime: twoHoursAgo}, function (data) {
                     // Filter already attended meetings
                     invites = invites.filter(
                         (invite) => data.every((history) => !history.url.includes(invite.hangoutLink))
