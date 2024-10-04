@@ -169,9 +169,15 @@ const getGoogleMeetings = async (token) => {
                     tabs.every((tab) => !tab.url.includes(invite.hangoutLink))
                 )
 
+                if (invites.length === 0) return
+
                 let max_diff = Math.max(...invites.map((invite) => {
                     return new Date(invite.end.dateTime) - new Date(invite.start.dateTime)
                 }))
+
+                if (isNaN(max_diff) || !isFinite(max_diff)) {
+                    max_diff = 2 * 60 * 60 * 1000;
+                }
 
                 let twoHoursAgo = (new Date()).getTime() - max_diff;
 
