@@ -16,6 +16,8 @@
  * @property {string} hangoutLink - The URL to join the meeting.
  * @property {Organizer} organizer - The organizer of the invite.
  * @property {string} summary - The name of the invite.
+ * @property {Object} start - Invite's start time with dateTime string inside
+ * @property {Object} end - Invite's end time with dateTime string inside
  */
 
 let lastCheckAt = new Date();
@@ -60,10 +62,18 @@ const notifyEverybodyDeclined = (invite) => {
         return
     }
 
+    let dt = ''
+
+    if ('dateTime' in invite.start) {
+        dt = invite.start.dateTime.toLocaleString()
+    } else if ('date' in invite.start) {
+        dt = invite.start.date.toLocaleString()
+    }
+
     chrome.notifications.create("everybodyDeclined", {
         type: "basic",
         iconUrl: "../images/icon.png",
-        title: `Everybody declined '${invite.summary ? invite.summary : '(No title)'}' @ ${invite.start.dateTime.toLocaleString()}`,
+        title: `Everybody declined '${invite.summary ? invite.summary : '(No title)'}' @ ${dt}`,
         message: '',
         requireInteraction: true
     });
@@ -130,6 +140,7 @@ const getGoogleMeetings = async (token) => {
     fetch(`${googleAPICalendarURL}?${queryAdditionalParams}`, queryParams)
         .then((response) => response.json())
         .then(function (data) {
+
             let invites = data.items.filter((invite) => 'hangoutLink' in invite)
 
             // Filter meetings that were declined
@@ -158,8 +169,11 @@ const getGoogleMeetings = async (token) => {
                     tabs.every((tab) => !tab.url.includes(invite.hangoutLink))
                 )
 
-                // TODO: Define appropriate time frame to search, should be dependant on a meeting time ideally
-                let twoHoursAgo = (new Date()).getTime() - 1000 * 60 * 60 * 2;
+                let max_diff = Math.max(...invites.map((invite) => {
+                    return new Date(invite.end.dateTime) - new Date(invite.start.dateTime)
+                }))
+
+                let twoHoursAgo = (new Date()).getTime() - max_diff;
 
                 chrome.history.search({text: '', startTime: twoHoursAgo}, function (data) {
                     // Filter already attended meetings

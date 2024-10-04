@@ -20,11 +20,43 @@
         .feature-description {
             font-size: 2.0em;
         }
+        .logo {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100px;
+        }
+       .title {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <h1>AutoGMeet+ updated! What's New?</h1>
+    <img src="../images/icon.png" alt="AutoGMeet+ Logo" class="logo">
+    <h1 class="title">AutoGMeet+ Updated!</h1>
+    <h1 class="title">What's New?</h1>
     <div id="content">
+        <div class="version">Version 1.5</div>
+            <div class="feature">
+                <div class="feature-title">[Bug] Crash when start time is not dateTime object, but date instead</div>
+                <div class="feature-description">
+                    For some meeting placeholder if meeting start time was a date object instead of dateTime, notifications
+                    were failing with crash.
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-title">[Bug] Join before did not worked. Actually join just in-time was applied.</div>
+                <div class="feature-description">
+                    Disregarding the setting Join Before, extension joined the meeting just in-time. Now setting will
+                    be taken into account on joining.
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-title">[Bug] In case meeting is too long, it would be joined twice.</div>
+                <div class="feature-description">
+                    Take meeting duration into account when parsing browser history.
+                </div>
+            </div>
         <div class="version">Version 1.4</div>
             <div class="feature">
                 <div class="feature-title">[Bug] Multiple tabs were opened for a meeting</div>
