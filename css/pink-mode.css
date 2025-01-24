@@ -15,6 +15,11 @@ span {
     font-weight: bold;
     font-size: large;
 }
+.span_date {
+    font-weight: unset;
+    font-size: medium;
+    font-family: monospace;
+}
 p {
     /* Dark pink text color for paragraph */
     color: #c71585;

@@ -13,6 +13,11 @@ span {
     font-weight: bold;
     font-size: large;
 }
+.span_date {
+    font-weight: unset;
+    font-size: medium;
+    font-family: monospace;
+}
 p {
     /* Changed here to light grey */
     color: #B0BEC5;
