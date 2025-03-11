@@ -2,9 +2,10 @@
   "manifest_version": 3,
   "name": "AutoGMeet+",
   "description": "AutoGMeet+ for Google Calendar automatically connects you to your scheduled meetings, ensuring you never miss a call or appointment.",
-  "version": "1.6.1",
+  "version": "1.7",
 
   "permissions": ["alarms", "identity", "history", "notifications", "storage", "tabs"],
+
   "oauth2": {
     "client_id": "CLIENT_ID_PLACEHOLDER",
     "scopes": [

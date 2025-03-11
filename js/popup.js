@@ -134,3 +134,46 @@ const getCurrentDate = () => {
 }
 
 getCurrentDate()
+
+const dropdown = document.getElementById('meetDropdown');
+const header = document.getElementById('dropdownHeader');
+const panel = document.getElementById('dropdownPanel');
+const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
+
+header.addEventListener('click', function () {
+    dropdown.classList.toggle('open');
+});
+
+const setMeetJoinFlags = (flags) => {
+    checkboxes.forEach(chk => {
+        chk.checked = flags.includes(chk.value)
+    })
+    header.textContent = `Select Meeting Types [${flags.length} selected]`
+}
+
+const syncMeetJoinFlags = () => {
+    chrome.storage.local.get(["extensionSettingsMeetJoinFlags"]).then(
+        (result) => {
+            setMeetJoinFlags(
+                result.extensionSettingsMeetJoinFlags !== undefined && result.extensionSettingsMeetJoinFlags.flags !== undefined ?
+                    result.extensionSettingsMeetJoinFlags.flags : ['confirmed']
+            )
+        }
+    )
+}
+
+checkboxes.forEach(chk => {
+    chk.addEventListener('change', () => {
+        const selected = Array.from(checkboxes).filter(chk => chk.checked);
+        const selectedFlags = selected.map(chk => chk.value);
+        chrome.storage.local.set({ extensionSettingsMeetJoinFlags: { "flags": selectedFlags.length > 0 ? selectedFlags : ['confirmed'] } }).then(() => {syncMeetJoinFlags()})
+    });
+});
+
+document.addEventListener('click', (event) => {
+    if (!dropdown.contains(event.target)) {
+        dropdown.classList.remove('open');
+    }
+});
+
+syncMeetJoinFlags()

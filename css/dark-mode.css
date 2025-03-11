@@ -5,7 +5,7 @@ body {
     /* Changed here to dark */
     background-color: #212121;
 }
-h1, label, span {
+h1, label, span, .dropdown-header {
     /* Changed here to white */
     color: #FFFFFF;
 }
@@ -43,4 +43,66 @@ img {
     height: 50px;
     display: block;
     margin: 10px auto;
+}
+
+
+.dropdown {
+position: relative;
+width: 300px;
+user-select: none;
+}
+
+.dropdown-header {
+    background-color: #303F9F;
+    color: white;
+    padding: 14px 20px;
+    margin: 15px 0;
+    border: none;
+    cursor: pointer;
+    opacity: 0.9;
+    border-radius: 25px;
+}
+
+.dropdown-header:after {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 10px;
+    content: '\25BC';
+}
+.dropdown.open .dropdown-header:after {
+    content: '\25B2';
+}
+
+.dropdown-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #212121;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-top: 5px;
+    z-index: 10;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+}
+
+.dropdown.open .dropdown-panel {
+    max-height: 200px;
+    overflow: visible;
+}
+
+.dropdown-panel label {
+    display: block;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+.dropdown-panel label:last-child {
+    border-bottom: none;
+}
+.dropdown-panel input[type="checkbox"] {
+    margin-right: 10px;
 }

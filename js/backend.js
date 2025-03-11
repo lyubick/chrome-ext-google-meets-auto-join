@@ -19,6 +19,9 @@
  * @property {Object} start - Invite's start time with dateTime string inside
  * @property {Object} end - Invite's end time with dateTime string inside
  */
+let debug = false;
+
+console.log("Debug mode is " + (debug ? "enabled" : "disabled"))
 
 let lastCheckAt = new Date();
 const checkIntervalMillis = 2 * 60 * 1000;
@@ -82,7 +85,7 @@ const notifyEverybodyDeclined = (invite) => {
 }
 
 let alreadyScheduled = []
-const getGoogleMeetings = async (token) => {
+const getGoogleMeetings = async (token, flags) => {
     console.log("Executing...")
 
     function callbackOpenURL(URL) {
@@ -143,12 +146,13 @@ const getGoogleMeetings = async (token) => {
 
             let invites = data.items.filter((invite) => 'hangoutLink' in invite)
 
+            if (debug) {console.log(invites)}
+
             // Filter meetings that were declined
-            // TODO: Make a settings which meeting join or not to join, some list: declined, tentative etc.
             invites = invites.filter((invite) => {
                 if ('attendees' in invite) {
                     let user_accepted = invite.attendees.some(
-                        (attendee) => 'self' in attendee && attendee.responseStatus !== 'declined'
+                        (attendee) => 'self' in attendee && flags.includes(attendee.responseStatus)
                     )
                     if (user_accepted) {
                         let others_accepted = invite.attendees.some(
@@ -157,11 +161,14 @@ const getGoogleMeetings = async (token) => {
                         if ((!others_accepted) && user_accepted) notifyEverybodyDeclined(invite)
                         return others_accepted && user_accepted
                     }
+
                     return false
                 } else {
                     return 'organizer' in invite && 'self' in invite.organizer
                 }
             });
+
+            if (debug) {console.log(invites)}
 
             chrome.tabs.query({}, function (tabs) {
                 // Filter already opened meetings
@@ -197,8 +204,15 @@ const getGoogleMeetings = async (token) => {
         })
 }
 
+const readSettingsAndDoBusiness = (token) => {
+    chrome.storage.local.get(["extensionSettingsMeetJoinFlags"], (result) => {
+        let flags = result.extensionSettingsMeetJoinFlags !== undefined ? result.extensionSettingsMeetJoinFlags.flags : ['accepted', 'tentative', 'needsAction']
+        return getGoogleMeetings(token, flags)
+    })
+}
+
 const authAndExecute = () => {
-    getAuthToken(false).then((token => getGoogleMeetings(token)))
+    getAuthToken(false).then((token => readSettingsAndDoBusiness(token)))
 }
 
 const runIfExtensionEnabled = () => {
@@ -232,6 +246,11 @@ chrome.runtime.onInstalled.addListener(function(details){
     chrome.storage.local.get(["extensionSettingsTime"]).then((result) => {
         if (result.extensionSettingsTime === undefined) {
             chrome.storage.local.set({ extensionSettingsTime: {interval: -2}}).then(() => {})
+        }
+    })
+    chrome.storage.local.get(["extensionSettingsMeetResponse"]).then((result) => {
+        if (result.extensionSettingsMeetJoinFlags === undefined) {
+            chrome.storage.local.set({ extensionSettingsMeetJoinFlags: {flags: ['accepted', 'tentative', 'needsAction']}}).then(() => {})
         }
     })
 });

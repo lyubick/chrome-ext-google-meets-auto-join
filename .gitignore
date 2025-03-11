@@ -4,3 +4,6 @@
 /**/deployment.zip
 # By default, do not include images
 /**/*.png
+*.json
+#
+node_modules

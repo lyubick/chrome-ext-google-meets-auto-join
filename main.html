@@ -24,9 +24,36 @@
 
     <button id="powerButton">Stop</button>
 
-    <label for="today-date">Today's Date</label><p></p>
+    <div class="dropdown" id="meetDropdown">
+      <div class="dropdown-header" id="dropdownHeader">
+        Select Meeting Types
+      </div>
+      <div class="dropdown-panel" id="dropdownPanel">
+        <label>
+          <input type="checkbox" value="accepted" />
+          Accepted Meetings
+        </label>
+        <label>
+          <input type="checkbox" value="needsAction" />
+          Pending Meetings
+        </label>
+        <label>
+          <input type="checkbox" value="tentative" />
+          Tentative Meetings
+        </label>
+        <label>
+          <input type="checkbox" value="cancelled" />
+          Declined Meetings
+        </label>
+      </div>
+    </div>
+
+    <p></p>
+    <label for="today-date">Today's Date</label>
+    <p></p>
     <span class="span_date" id="today-date"></span>
 
     <script src="js/popup.js"></script>
+
 </body>
 </html>
