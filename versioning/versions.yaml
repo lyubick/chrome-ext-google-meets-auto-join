@@ -9,7 +9,10 @@
       description: |
         If the meeting was joined earlier than a start time and ended earlier than end time, it could
         again pop-up for joining. This behaviour fixed with additional 15 minute frame.
-
+    - title: "[Bug] Setting where not saved correctly"
+      description: |
+        User settings in accordance to meeting status were saved incorrectly. Now all settings saved correctly and
+        are not lost upon restart.
 - version: 1.7
   features:
     - title: "[Feature] Possibility to select which statuses to join"
