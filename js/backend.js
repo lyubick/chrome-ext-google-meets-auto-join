@@ -19,7 +19,7 @@
  * @property {Object} start - Invite's start time with dateTime string inside
  * @property {Object} end - Invite's end time with dateTime string inside
  */
-let debug = true;
+let debug = false;
 console.log("Debug mode is " + (debug ? "enabled" : "disabled"))
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -255,7 +255,7 @@ chrome.runtime.onInstalled.addListener(function(details){
             chrome.storage.local.set({ extensionSettingsTime: {interval: -2}}).then(() => {})
         }
     })
-    chrome.storage.local.get(["extensionSettingsMeetResponse"]).then((result) => {
+    chrome.storage.local.get(["extensionSettingsMeetJoinFlags"]).then((result) => {
         if (result.extensionSettingsMeetJoinFlags === undefined) {
             chrome.storage.local.set({ extensionSettingsMeetJoinFlags: {flags: ['accepted', 'tentative', 'needsAction']}}).then(() => {})
         }
