@@ -1,0 +1,75 @@
+---
+- version: 1.7.1
+  features:
+    - title: "[Bug] Meetings with hidden participants are skipped"
+      description: |
+        Meetings with hidden participants are skipped. Now, even if there are hidden participants,
+        extension will join the meeting, based on the meeting status.
+    - title: "[Bug] Sometimes meeting was joined after it was attended"
+      description: |
+        If the meeting was joined earlier than a start time and ended earlier than end time, it could
+        again pop-up for joining. This behaviour fixed with additional 15 minute frame.
+
+- version: 1.7
+  features:
+    - title: "[Feature] Possibility to select which statuses to join"
+      description: |
+        User can select which meeting statuses to join. For example, user can select only accepted meetings.
+
+- version: 1.6.1
+  features:
+    - title: "[Feature] Show current date and current week number"
+      description: |
+        Show date and current week number in the popup menu.
+
+- version: 1.6
+  features:
+    - title: "[Bug] Extension crashes when calculating meeting duration"
+      description: |
+        Do not calculating meeting duration when there is no meetings.
+
+- version: 1.5
+  features:
+    - title: "[Bug] Crash when start time is not dateTime object, but date instead"
+      description: |
+        For some meeting placeholder if meeting start time was a date object instead of dateTime, notifications
+        were failing with crash.
+    - title: "[Bug] Join before did not worked. Actually join just in-time was applied."
+      description: |
+        Disregarding the setting Join Before, extension joined the meeting just in-time. Now setting will
+        be taken into account on joining.
+    - title: "[Bug] In case meeting is too long, it would be joined twice."
+      description: |
+        Take meeting duration into account when parsing browser history.
+
+- version: 1.4
+  features:
+    - title: "[Bug] Multiple tabs were opened for a meeting"
+      description: |
+        Bug was still there even after fix in 1.3. Now it is solved.
+    - title: "[Bug] Join before did not worked. Actually join just in-time was applied."
+      description: |
+        Disregarding the setting Join Before, extension joined the meeting just in-time. Now setting will
+        be taken into account on joining.
+
+- version: 1.3
+  features:
+    - title: "[Bug] Multiple tabs were opened for a meeting"
+      description: |
+        No more multiple tabs will be opened for a meeting.
+
+- version: 1.2
+  features:
+    - title: "[Feature] Configure time when to join the meeting!"
+      description: |
+        Chose between values (-2, -1, 0, 1), corresponding 2 or 1 minute before the start, 0 just in time,
+        or be like a Royal - one minute late.
+    - title: "[Feature] Do not join declined meetings"
+      description: |
+        Extension will not join declined meetings, or meeting that were declined by all others attendees.
+    - title: "[Bug] Extension goes inactive"
+      description: |
+        Fixed the issue when extension's background service went inactive.
+    - title: "[Bug] Extension is spamming notifications"
+      description: |
+        Fixed the issue that same notification was spammed multiple times.

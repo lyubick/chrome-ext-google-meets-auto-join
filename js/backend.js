@@ -19,12 +19,15 @@
  * @property {Object} start - Invite's start time with dateTime string inside
  * @property {Object} end - Invite's end time with dateTime string inside
  */
-let debug = false;
-
+let debug = true;
 console.log("Debug mode is " + (debug ? "enabled" : "disabled"))
 
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+const TWO_MINUTES_MS = 2 * 60 * 1000;
+
 let lastCheckAt = new Date();
-const checkIntervalMillis = 2 * 60 * 1000;
+const checkIntervalMillis = TWO_MINUTES_MS;
 
 const googleAPICalendarURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 
@@ -155,7 +158,10 @@ const getGoogleMeetings = async (token, flags) => {
                         (attendee) => 'self' in attendee && flags.includes(attendee.responseStatus)
                     )
                     if (user_accepted) {
-                        let others_accepted = invite.attendees.some(
+                        // Corner case when participant list is hidden cause skipping of a meeting, let's check
+                        // if there is only 1 participant do not evaluate the status, because this one is the user
+                        // itself.
+                        let others_accepted = invite.attendees.length === 1 || invite.attendees.some(
                             (attendee) => attendee.responseStatus !== 'declined' && !('self' in attendee)
                         )
                         if ((!others_accepted) && user_accepted) notifyEverybodyDeclined(invite)
@@ -183,10 +189,11 @@ const getGoogleMeetings = async (token, flags) => {
                 }))
 
                 if (isNaN(max_diff) || !isFinite(max_diff)) {
-                    max_diff = 2 * 60 * 60 * 1000;
+                    max_diff = TWO_HOURS_MS;
                 }
 
-                let twoHoursAgo = (new Date()).getTime() - max_diff;
+                // Take additional 15 minutes off in case meeting was joined earlier
+                let twoHoursAgo = (new Date()).getTime() - max_diff - FIFTEEN_MINUTES_MS;
 
                 chrome.history.search({text: '', startTime: twoHoursAgo}, function (data) {
                     // Filter already attended meetings
