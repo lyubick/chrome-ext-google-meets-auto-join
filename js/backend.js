@@ -18,8 +18,11 @@
  * @property {string} summary - The name of the invite.
  * @property {Object} start - Invite's start time with dateTime string inside
  * @property {Object} end - Invite's end time with dateTime string inside
+ *
+ * @property {Object} date - Invite's start could be in a form of date or dateTime.
  */
-let debug = false;
+
+let debug = true;
 console.log("Debug mode is " + (debug ? "enabled" : "disabled"))
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -32,8 +35,6 @@ const checkIntervalMillis = TWO_MINUTES_MS;
 const googleAPICalendarURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 
 const getAuthToken = (interactive) => {
-    console.log("Authenticating...")
-
     return chrome.identity.getAuthToken({'interactive': interactive})
         .then((tokenObject) => tokenObject.token)
 }
@@ -87,13 +88,25 @@ const notifyEverybodyDeclined = (invite) => {
     alreadyNotified.push(invite.hangoutLink)
 }
 
+// Meet may rewrite the URL it was opened with (e.g. add a /_meet/ segment or query params), so compare by meeting code
+const getMeetingCode = (URL) => {
+    const match = URL.match(/[a-z]{3}-[a-z]{4}-[a-z]{3}/)
+    return match ? match[0] : URL
+}
+
 let alreadyScheduled = []
 const getGoogleMeetings = async (token, flags) => {
     console.log("Executing...")
 
     function callbackOpenURL(URL) {
-        chrome.tabs.create({url: URL}, function (tab) {
-            chrome.windows.update(tab.windowId, {focused: true}).then(() => {})
+        chrome.tabs.query({}, function (tabs) {
+            if (!tabs.some((tab) => tab.url && tab.url.includes(getMeetingCode(URL)))) {
+                chrome.tabs.create({url: URL}, function (tab) {
+                    chrome.windows.update(tab.windowId, {focused: true}).then(() => {})
+                })
+            } else {
+                console.log(`Meeting ${URL} already opened, skipping.`)
+            }
         })
     }
 
@@ -101,7 +114,7 @@ const getGoogleMeetings = async (token, flags) => {
         chrome.storage.local.get(["extensionSettingsTime"]).then(
             (result) => {
                 let timeDifference = (new Date()).getTime() - new Date(invite.start.dateTime).getTime()
-                // Interval is set in minutes in settings so it is required *60*1000 to convert to MS
+                // Interval is set in minutes in settings, so it is required *60*1000 to convert to MS
                 let intervalMS = result.extensionSettingsTime.interval * 60 * 1000
 
                 if (timeDifference >= intervalMS) {
@@ -158,7 +171,7 @@ const getGoogleMeetings = async (token, flags) => {
                         (attendee) => 'self' in attendee && flags.includes(attendee.responseStatus)
                     )
                     if (user_accepted) {
-                        // Corner case when participant list is hidden cause skipping of a meeting, let's check
+                        // Corner case when the participant list is hidden cause skipping of a meeting, let's check
                         // if there is only 1 participant do not evaluate the status, because this one is the user
                         // itself.
                         let others_accepted = invite.attendees.length === 1 || invite.attendees.some(
@@ -176,38 +189,31 @@ const getGoogleMeetings = async (token, flags) => {
 
             if (debug) {console.log(invites)}
 
-            chrome.tabs.query({}, function (tabs) {
-                // Filter already opened meetings
-                invites = invites.filter((invite) =>
-                    tabs.every((tab) => !tab.url.includes(invite.hangoutLink))
+            if (invites.length === 0) return
+
+            let max_diff = Math.max(...invites.map((invite) => {
+                return new Date(invite.end.dateTime) - new Date(invite.start.dateTime)
+            }))
+
+            if (isNaN(max_diff) || !isFinite(max_diff)) {
+                max_diff = TWO_HOURS_MS;
+            }
+
+            // Take an additional 15 minutes off in case the meeting was joined earlier
+            let twoHoursAgo = (new Date()).getTime() - max_diff - FIFTEEN_MINUTES_MS;
+
+            chrome.history.search({text: '', startTime: twoHoursAgo}, function (data) {
+                // Filter already attended meetings
+                invites = invites.filter(
+                    (invite) => data.every((history) => !history.url.includes(getMeetingCode(invite.hangoutLink)))
                 )
 
-                if (invites.length === 0) return
+                // Notify user about overlapping meetings
+                if (invites.length > 1) notifyOverlappingMeets(invites)
 
-                let max_diff = Math.max(...invites.map((invite) => {
-                    return new Date(invite.end.dateTime) - new Date(invite.start.dateTime)
-                }))
-
-                if (isNaN(max_diff) || !isFinite(max_diff)) {
-                    max_diff = TWO_HOURS_MS;
-                }
-
-                // Take additional 15 minutes off in case meeting was joined earlier
-                let twoHoursAgo = (new Date()).getTime() - max_diff - FIFTEEN_MINUTES_MS;
-
-                chrome.history.search({text: '', startTime: twoHoursAgo}, function (data) {
-                    // Filter already attended meetings
-                    invites = invites.filter(
-                        (invite) => data.every((history) => !history.url.includes(invite.hangoutLink))
-                    )
-
-                    // Notify user about overlapping meetings
-                    if (invites.length > 1) notifyOverlappingMeets(invites)
-
-                    // Open all meetings that survived till here
-                    invites.forEach(invite => openURL(invite))
-                });
-            })
+                // Open all meetings that survived till here
+                invites.forEach(invite => openURL(invite))
+            });
         })
 }
 
@@ -220,21 +226,18 @@ const readSettingsAndDoBusiness = (token) => {
 
 const authAndExecute = () => {
     getAuthToken(false).then((token => readSettingsAndDoBusiness(token)))
+        .catch((error) => console.error("Authentication failed:", error))
 }
 
 const runIfExtensionEnabled = () => {
     chrome.storage.local.get(["extensionSettings"]).then((result) => {
         if (result.extensionSettings === undefined || result.extensionSettings.isOn === undefined || result.extensionSettings.isOn === true) {
-            console.log("Extension is set to 'on'")
-
             if (new Date().getTime() > lastCheckAt.getTime()) {
                 authAndExecute()
                 lastCheckAt = new Date(lastCheckAt.getTime() + checkIntervalMillis);
             } else {
                 console.log("Skipping, because check already was done in " + checkIntervalMillis + "ms")
             }
-        } else {
-            console.log("Extension is set to 'off'");
         }
     });
 }
@@ -242,7 +245,7 @@ const runIfExtensionEnabled = () => {
 // Upon installation or update initiate interactive authentication
 chrome.runtime.onInstalled.addListener(function(details){
     if (details.reason === "install" || details.reason === "update") {
-        getAuthToken(true)
+        getAuthToken(true).catch((error) => console.error("Authentication failed:", error))
     }
 
     if (details.reason === "update") {

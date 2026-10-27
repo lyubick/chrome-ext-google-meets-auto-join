@@ -1,4 +1,10 @@
 ---
+- version: 1.7.2
+  features:
+    - title: "[Bug] Meeting opens again if it was opened manually"
+      description: |
+        Meeting was opened a second time if the user had already opened it, because Meet may rewrite the
+        meeting URL. Now meetings are matched by meeting code, so already opened or attended ones are skipped.
 - version: 1.7.1
   features:
     - title: "[Bug] Meetings with hidden participants are skipped"
