@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AutoGMeet+",
-  "description": "AutoGMeet+ for Google Calendar automatically connects you to your scheduled Google Meet and Zoom meetings, ensuring you never miss a call or appointment.",
+  "description": "AutoGMeet+ for Google Calendar automatically joins your Google Meet and Zoom meetings, so you never miss a call.",
   "version": "VERSION_PLACEHOLDER",
 
   "permissions": ["alarms", "identity", "history", "notifications", "storage", "tabs"],
