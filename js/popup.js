@@ -125,7 +125,7 @@ const syncRangeText = () => {
 syncRangeText()
 
 const getCurrentDate = () => {
-    d = new Date();
+    const d = new Date();
     d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
@@ -177,3 +177,27 @@ document.addEventListener('click', (event) => {
 });
 
 syncMeetJoinFlags()
+
+// Meeting providers
+const providerCheckboxes = document.querySelectorAll('input[data-provider]');
+
+const syncProviders = () => {
+    chrome.storage.local.get(["extensionSettingsProviders"]).then((result) => {
+        // Provider that was never configured is enabled
+        const providers = {meet: true, zoom: true, ...result.extensionSettingsProviders}
+        providerCheckboxes.forEach(chk => chk.checked = providers[chk.dataset.provider])
+    })
+}
+
+providerCheckboxes.forEach(chk => {
+    chk.addEventListener('change', () => {
+        const providers = {}
+        providerCheckboxes.forEach(c => providers[c.dataset.provider] = c.checked)
+        chrome.storage.local.set({ extensionSettingsProviders: providers }).then(() => syncProviders())
+    });
+});
+
+syncProviders()
+
+// Show the extension version from manifest
+document.getElementById('app-version').textContent = `v${chrome.runtime.getManifest().version}`

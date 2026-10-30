@@ -1,4 +1,15 @@
 ---
+- version: 1.8.0
+  features:
+    - title: "[Feature] Zoom meetings support"
+      description: |
+        Zoom links found in the invite (Zoom add-on, location or description) are opened the same way as Google Meet
+        ones. If an invite has both Zoom and Google Meet links, Zoom is used and a notification tells that Meet was
+        ignored. Each provider can be switched on or off in the popup.
+    - title: "[Bug] Recurring meetings were joined only once"
+      description: |
+        Recurring meetings share the same link, so after the first occurrence they were considered already scheduled
+        or notified. Now every occurrence is tracked separately.
 - version: 1.7.2
   features:
     - title: "[Bug] Meeting opens again if it was opened manually"

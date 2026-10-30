@@ -7,14 +7,21 @@
 </head>
 <body>
     <img src="images/icon.png" alt="Logo">
-    <h1>AutoGMeet+</h1>
+    <h1>AutoGMeet+ <small id="app-version"></small></h1>
     <p>Google Chrome Extension for ones who love to focus and miss the meeting!</p>
+    <div class="date-pill"><span class="span_date" id="today-date"></span></div>
 
-    <label for="mode-switch">Dark theme:</label>
-    <input type="checkbox" id="mode-switch">
-    <p></p>
-    <label for="mode-switch-auto">Inherit from Chrome:</label>
-    <input type="checkbox" id="mode-switch-auto">
+    <section class="card">
+      <h2 class="card-title">Appearance</h2>
+      <label class="switch-row" for="mode-switch">
+        <span class="row-label">Dark theme</span>
+        <input type="checkbox" class="switch" id="mode-switch">
+      </label>
+      <label class="switch-row" for="mode-switch-auto">
+        <span class="row-label">Inherit from Chrome</span>
+        <input type="checkbox" class="switch" id="mode-switch-auto">
+      </label>
+    </section>
 
     <p></p>
     <label for="time-join-value">Join before: </label>
@@ -23,6 +30,18 @@
     <input type="range" id="time-join" min="-2" max="1">
 
     <button id="powerButton">Stop</button>
+
+    <section class="card">
+      <h2 class="card-title">Meeting providers</h2>
+      <label class="switch-row" for="provider-meet">
+        <span class="row-label">Google Meet</span>
+        <input type="checkbox" class="switch" id="provider-meet" data-provider="meet">
+      </label>
+      <label class="switch-row" for="provider-zoom">
+        <span class="row-label">Zoom</span>
+        <input type="checkbox" class="switch" id="provider-zoom" data-provider="zoom">
+      </label>
+    </section>
 
     <div class="dropdown" id="meetDropdown">
       <div class="dropdown-header" id="dropdownHeader">
@@ -47,11 +66,6 @@
         </label>
       </div>
     </div>
-
-    <p></p>
-    <label for="today-date">Today's Date</label>
-    <p></p>
-    <span class="span_date" id="today-date"></span>
 
     <script src="js/popup.js"></script>
 

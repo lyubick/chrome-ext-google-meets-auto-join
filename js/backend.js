@@ -13,14 +13,19 @@
  * @typedef {Object} Invite
  *
  * @property {Attendee[]} attendees - The list of attendees of the meeting.
- * @property {string} hangoutLink - The URL to join the meeting.
+ * @property {string} hangoutLink - The URL to join the Google Meet meeting.
+ * @property {string} location - Free text location, may contain a Zoom link.
+ * @property {string} description - Free text description, may contain a Zoom link.
+ * @property {Object} conferenceData - Conference solution data, Zoom add-on stores its link here.
  * @property {Organizer} organizer - The organizer of the invite.
  * @property {string} summary - The name of the invite.
- * @property {Object} start - Invite's start time with dateTime string inside
- * @property {Object} end - Invite's end time with dateTime string inside
+ * @property {{dateTime: (string|undefined), date: (string|undefined)}} start - Invite's start, timed events have dateTime, all-day ones date
+ * @property {{dateTime: (string|undefined), date: (string|undefined)}} end - Invite's end, same shape as start
  *
  * @property {Object} date - Invite's start could be in a form of date or dateTime.
  */
+
+importScripts('join-links.js')
 
 let debug = true;
 console.log("Debug mode is " + (debug ? "enabled" : "disabled"))
@@ -62,9 +67,36 @@ const notifyOverlappingMeets = (invites) => {
     });
 }
 
-let alreadyNotified = []
+// Dedup lists are keyed by meeting id + start time, so a recurring meeting (same link every time) is handled once per
+// occurrence. Value is the occurrence start, used for pruning.
+const ONE_DAY_MS = 24 * 60 * 60 * 1000
+
+const pruneOld = (map) => {
+    const threshold = Date.now() - ONE_DAY_MS
+    map.forEach((startMs, key) => {
+        if (startMs < threshold) map.delete(key)
+    })
+}
+
+let alreadyNotified = new Map()
+let alreadyNotifiedIgnoredMeet = new Map()
+
+const notifyIgnoredMeet = (invite) => {
+    if (alreadyNotifiedIgnoredMeet.has(invite._key)) return
+
+    chrome.notifications.create(`ignoredMeet-${invite._key}`, {
+        type: "basic",
+        iconUrl: "../images/icon.png",
+        title: `Joining Zoom, Google Meet ignored`,
+        message: `'${invite.summary ? invite.summary : '(No title)'}' has both Zoom and Google Meet links. Zoom link is used.`,
+        requireInteraction: false
+    });
+
+    alreadyNotifiedIgnoredMeet.set(invite._key, invite._startMs)
+}
+
 const notifyEverybodyDeclined = (invite) => {
-    if (alreadyNotified.includes(invite.hangoutLink)) {
+    if (alreadyNotified.has(invite._key)) {
         console.log("Notification sent already!")
         return
     }
@@ -85,22 +117,20 @@ const notifyEverybodyDeclined = (invite) => {
         requireInteraction: true
     });
 
-    alreadyNotified.push(invite.hangoutLink)
+    alreadyNotified.set(invite._key, invite._startMs)
 }
 
-// Meet may rewrite the URL it was opened with (e.g. add a /_meet/ segment or query params), so compare by meeting code
-const getMeetingCode = (URL) => {
-    const match = URL.match(/[a-z]{3}-[a-z]{4}-[a-z]{3}/)
-    return match ? match[0] : URL
-}
+let alreadyScheduled = new Map()
+const getGoogleMeetings = async (token, flags, providers) => {
+    pruneOld(alreadyScheduled)
+    pruneOld(alreadyNotified)
+    pruneOld(alreadyNotifiedIgnoredMeet)
 
-let alreadyScheduled = []
-const getGoogleMeetings = async (token, flags) => {
     console.log("Executing...")
 
     function callbackOpenURL(URL) {
         chrome.tabs.query({}, function (tabs) {
-            if (!tabs.some((tab) => tab.url && tab.url.includes(getMeetingCode(URL)))) {
+            if (!tabs.some((tab) => tab.url && tab.url.includes(getMeetingId(URL)))) {
                 chrome.tabs.create({url: URL}, function (tab) {
                     chrome.windows.update(tab.windowId, {focused: true}).then(() => {})
                 })
@@ -118,10 +148,10 @@ const getGoogleMeetings = async (token, flags) => {
                 let intervalMS = result.extensionSettingsTime.interval * 60 * 1000
 
                 if (timeDifference >= intervalMS) {
-                    callbackOpenURL(invite.hangoutLink)
+                    callbackOpenURL(invite._join.url)
                 } else {
                     // Return, if url opening already scheduled
-                    if (alreadyScheduled.includes(invite.hangoutLink)) {
+                    if (alreadyScheduled.has(invite._key)) {
                         console.log("Meeting already scheduled for opening.")
                         return
                     }
@@ -129,10 +159,10 @@ const getGoogleMeetings = async (token, flags) => {
                     setTimeout(
                         callbackOpenURL,
                         Math.abs(Math.abs(timeDifference) - Math.abs(intervalMS)),
-                        invite.hangoutLink
+                        invite._join.url
                     )
 
-                    alreadyScheduled.push(invite.hangoutLink)
+                    alreadyScheduled.set(invite._key, invite._startMs)
                 }
             }
         )
@@ -160,7 +190,19 @@ const getGoogleMeetings = async (token, flags) => {
         .then((response) => response.json())
         .then(function (data) {
 
-            let invites = data.items.filter((invite) => 'hangoutLink' in invite)
+            let invites = data.items.filter((invite) => {
+                const link = getJoinLink(invite)
+                if (link === null) return false
+
+                // Zoom invite stays a Zoom invite: if Zoom is switched off, it must not fall back to its Meet link
+                if (!providers[link.join.provider]) return false
+
+                invite._join = link.join
+                invite._ignoredMeet = link.ignoredMeet
+                invite._startMs = new Date(invite.start.dateTime || invite.start.date).getTime()
+                invite._key = `${link.join.id}|${invite._startMs}`
+                return true
+            })
 
             if (debug) {console.log(invites)}
 
@@ -205,8 +247,10 @@ const getGoogleMeetings = async (token, flags) => {
             chrome.history.search({text: '', startTime: twoHoursAgo}, function (data) {
                 // Filter already attended meetings
                 invites = invites.filter(
-                    (invite) => data.every((history) => !history.url.includes(getMeetingCode(invite.hangoutLink)))
+                    (invite) => data.every((history) => !history.url.includes(invite._join.id))
                 )
+
+                invites.filter((invite) => invite._ignoredMeet).forEach(notifyIgnoredMeet)
 
                 // Notify user about overlapping meetings
                 if (invites.length > 1) notifyOverlappingMeets(invites)
@@ -218,9 +262,11 @@ const getGoogleMeetings = async (token, flags) => {
 }
 
 const readSettingsAndDoBusiness = (token) => {
-    chrome.storage.local.get(["extensionSettingsMeetJoinFlags"], (result) => {
+    chrome.storage.local.get(["extensionSettingsMeetJoinFlags", "extensionSettingsProviders"], (result) => {
         let flags = result.extensionSettingsMeetJoinFlags !== undefined ? result.extensionSettingsMeetJoinFlags.flags : ['accepted', 'tentative', 'needsAction']
-        return getGoogleMeetings(token, flags)
+        // Provider that was never configured (e.g. Zoom for users who updated) is enabled
+        let providers = {meet: true, zoom: true, ...result.extensionSettingsProviders}
+        return getGoogleMeetings(token, flags, providers)
     })
 }
 
@@ -256,6 +302,11 @@ chrome.runtime.onInstalled.addListener(function(details){
     chrome.storage.local.get(["extensionSettingsTime"]).then((result) => {
         if (result.extensionSettingsTime === undefined) {
             chrome.storage.local.set({ extensionSettingsTime: {interval: -2}}).then(() => {})
+        }
+    })
+    chrome.storage.local.get(["extensionSettingsProviders"]).then((result) => {
+        if (result.extensionSettingsProviders === undefined) {
+            chrome.storage.local.set({ extensionSettingsProviders: {meet: true, zoom: true}}).then(() => {})
         }
     })
     chrome.storage.local.get(["extensionSettingsMeetJoinFlags"]).then((result) => {

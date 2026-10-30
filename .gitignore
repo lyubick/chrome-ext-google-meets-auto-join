@@ -9,3 +9,5 @@
 node_modules
 # Python venv exclusion
 /**/venv
+# Random txt files
+/**/*.txt

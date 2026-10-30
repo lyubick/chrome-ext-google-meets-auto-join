@@ -19,13 +19,13 @@ AutoGMeet+ does not collect, store, or transmit any of your personal information
 ## How AutoGMeet+ Works
 
 AutoGMeet+ operates entirely within your browser and on your computer.
-The Extension accesses your Google Calendar solely to identify and join scheduled Google Meet meetings.
+The Extension accesses your Google Calendar solely to identify and join scheduled Google Meet and Zoom meetings.
 This process happens locally on your device, and no data is sent to external servers or third-party services.
 
 ## Data Processing
 
 The information from your Google Calendar is processed only on your device.
-AutoGMeet+ uses this information to automate the joining of Google Meet meetings.
+AutoGMeet+ uses this information to automate the joining of Google Meet and Zoom meetings.
 The data remains within the Google Chrome environment and is not shared with or processed by any external entities.
 
 ## Third-Party Services

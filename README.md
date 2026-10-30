@@ -1,5 +1,5 @@
 # AutoGMeet+
-AutoGMeet+ for Google Calendar automatically connects you to your scheduled meetings, ensuring you never miss a call or appointment.
+AutoGMeet+ for Google Calendar automatically connects you to your scheduled Google Meet and Zoom meetings, ensuring you never miss a call or appointment.
 
 ## Install Locally
 One can install this extension locally in their Chrome Extensions. To do so, follow this steps:
